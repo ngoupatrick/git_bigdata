@@ -1,0 +1,88 @@
+- install vm (22.04.5)
+	lsb_release -a
+		cat /etc/os-release
+
+- check sshd:
+	sudo systemctl status sshd
+		sudo systemctl restart ssh.service
+	install: sudo apt install openssh-client openssh-server -y
+
+- keys:
+	genarate key on client:
+		ssh-keygen -f [path_to_file] -t [ecdsa, rsa, dsa] -b 4096
+	copy generated public key to remote user (remote host)
+		ssh-copy-id [-i path_pub_key] [user]@[remote_host]
+	ssh connexion:
+		ssh -i path_private_id_rsa [user]@[remote_host]
+
+- install java:
+	11: sudo apt install openjdk-11-jre-headless -y
+		sudo apt install openjdk-11-jdk -y
+		sudo apt install default-jre -y
+	17: sudo apt install openjdk-17-jre-headless -y
+
+	check java:
+		java --version
+		javac --version
+		which sshd|ssh|java
+		sudo update-alternatives --config java
+
+- install kafka
+	url:
+		https://kafka.apache.org/quickstart
+		https://hevodata.com/blog/how-to-install-kafka-on-ubuntu/
+
+	wget https://dlcdn.apache.org/kafka/4.0.0/kafka_2.13-4.0.0.tgz
+	tar -xzf kafka_2.13-4.0.0.tgz
+	mv kafka_2.13-4.0.0 kafka
+	cd kafka
+
+	Generate a Cluster UUID
+		KAFKA_CLUSTER_ID="$(bin/kafka-storage.sh random-uuid)"
+			KAFKA_CLUSTER_ID=YhrKEFNbTiCNn6cDiyruFw
+	Format Log Directories:
+		mkdir -p ~/data/files
+		create folders ~/data/zookeeper/data,log; ~/data/kafka/data,log
+		change log and data path in config/server.properties (dataDir=~/data/zookeeper/data
+dataLogDir=~/data/zookeeper/log, log.dirs|log.dir=~/data/kafka/log)
+		bin/kafka-storage.sh format --standalone -t $KAFKA_CLUSTER_ID -c config/server.properties
+	Start the Kafka Server
+		bin/kafka-server-start.sh config/server.properties
+		bin/kafka-server-stop.sh config/server.properties
+			[nohup ./bin/zookeeper-server-start.sh ./config/zookeeper.properties &]
+			nohup ./bin/kafka-server-start.sh ./config/server.properties &
+
+	create topic:
+		bin/kafka-topics.sh --create --topic topic-test --bootstrap-server localhost:9092 [ --replication-factor 1 --partitions 1 --config cleanup.policy=delete --config delete.retention.ms=60000]
+	describe:
+		bin/kafka-topics.sh --describe --topic topic-test --bootstrap-server localhost:9092
+	list:
+		bin/kafka-topics.sh --list --bootstrap-server localhost:9092
+	write:
+		bin/kafka-console-producer.sh --topic topic-test --bootstrap-server localhost:9092
+	read:
+		bin/kafka-console-consumer.sh --topic topic-test --from-beginning --bootstrap-server localhost:9092
+	delete a topic:
+    	bin/kafka-topics.sh --bootstrap-server localhost:9092 --delete --topic topic-test
+
+	read data from file
+		set jar:
+			echo "plugin.path=libs/connect-file-4.0.0.jar" >> config/connect-standalone.properties
+		start connector:
+			bin/connect-standalone.sh config/connect-standalone.properties config/connect-file-source.properties config/connect-file-sink.properties
+		start consumer (cmd and file):
+			bin/kafka-console-consumer.sh --bootstrap-server localhost:9092 --topic connect-test --from-beginning
+			more (tail -f) test.sink.txt
+		write in file (look in consumer output):
+			echo -e "foo\nbar" > test.txt
+			echo "Another line" >> test.txt
+
+- install hadoop
+	url:
+		https://shape.host/resources/guide-dinstallation-dapache-hadoop-pour-les-utilisateurs-dubuntu-22-04
+
+- minio:
+	url:
+		https://www.atlantic.net/dedicated-server-hosting/how-to-deploy-minio-on-ubuntu-22-04-an-open-source-object-storage-application/
+
+
