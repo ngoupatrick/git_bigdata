@@ -133,12 +133,12 @@ log_bin = ON
 log-bin = mysql-bin
 binlog_row_image = FULL
 binlog-format = ROW
-server-id = 223344
 binlog_rows_query_log_events = ON
 expire_logs_days = 90
 gtid_mode = ON
 enforce_gtid_consistency = ON
 performance_schema=ON
+
 
 # Example 2 (if bin log if OFF)
 
@@ -156,6 +156,10 @@ binlog_rows_query_log_events=ON
 				this variable must be set to a value other than PARTIAL_JSON.
 					set @@global.binlog_row_value_options="" ;
 
+			look at some variables:
+				mysql> show binary logs;
+				mysql> show variables like '%bin%';
+
 			restart mysql:
 				sudo service mysql restart
 
@@ -165,15 +169,16 @@ binlog_rows_query_log_events=ON
 				wget https://repo1.maven.org/maven2/io/debezium/debezium-connector-mysql/3.0.6.Final/debezium-connector-mysql-3.0.6.Final-plugin.tar.gz
 				tar -xvzf debezium-connector-mysql-3.0.6.Final-plugin.tar.gz
 				
-				#move all jar files in plugins folder 
-				mv debezium-connector-mysql/*.jar .
-
 				# copy jar from plugins to libs
-				cp -Rp *.jar ../libs/
+				cp -Rp debezium-connector-mysql/*.jar ../libs/
+
+				#move all jar files in plugins folder 
+				mv debezium-connector-mysql/*.jar .				
 
 			add path to properties files:
 				nano kafka/config/connect-standalone.properties
-					plugin.path=<path_to_plugins>,plugins/
+					offset.storage.file.filename=/home/nanpson/data/kafka/data/connect.offsets
+					plugin.path=libs/connect-file-4.0.0.jar,plugins/
 			
 			Edit mysql connector:
 				nano kafka/config/connect-debezium-mysql.json
@@ -185,6 +190,7 @@ curl -i -X PUT -H "Accept:application/json" \
     -d '
 {
     "name": "test-connector",
+    "type": "source",
     "config": {
         "connector.class": "io.debezium.connector.mysql.MySqlConnector",
         "database.hostname": "localhost",
@@ -194,12 +200,26 @@ curl -i -X PUT -H "Accept:application/json" \
         "database.server.id": "1",
         "topic.prefix": "fullfillment",
         "database.include.list": "test_db",
-        "table.include.list":"test_table",
+        "table.include.list":"test_db.test_table",
+        "table.whitelist": "test_db.test_table",
         "schema.history.internal.kafka.bootstrap.servers": "localhost:9092",
-        "schema.history.internal.kafka.topic": "schemahistory.fullfillment",
-        "include.schema.changes": "true"
-    }
-}'
+        "schema.history.internal.kafka.topic": "topic.fullfillment",
+        "include.schema.changes": "false",
+        "schemas.enable": "true",
+        "key.converter": "org.apache.kafka.connect.json.JsonConverter",
+        "key.converter.schemas.enable": "true",
+        "value.converter": "org.apache.kafka.connect.json.JsonConverter",
+        "value.converter.schemas.enable": "true"
+    },
+    "tasks": [
+      {
+        "connector": "test-connector",
+        "task": 0
+      }
+    ]
+}
+
+'
 
 
 #other options,  comma-separated
@@ -213,7 +233,7 @@ column.include.list
 		start services:
 			cd kafka
 			start kafka			
-			start consumer on topic fullfillment
+			start consumer on topic fullfillment.test_db.test_table
 			Start Kafka Connect Service:
 				bin/connect-standalone.sh config/connect-standalone.properties config/connect-debezium-mysql.json
 
@@ -238,6 +258,90 @@ key.converter.schemas.enable=false
 value.converter=org.apache.kafka.connect.json.JsonConverter
 value.converter.schemas.enable=false
 schemas.enable=false
+
+# SINK
+urls:
+	https://medium.com/@alexander.murylev/kafka-connect-debezium-mysql-source-sink-replication-pipeline-fb4d7e9df790
+	https://debezium.io/documentation/reference/stable/connectors/jdbc.html#jdbc-deployment
+
+vi connect-standalone.properties
+
+## ADD BY ME
+key.converter.schemas.enable=true
+value.converter.schemas.enable=true
+internal.key.converter.schemas.enable=true
+internal.value.converter.schemas.enable=true
+internal.key.converter=org.apache.kafka.connect.json.JsonConverter
+internal.value.converter=org.apache.kafka.connect.json.JsonConverter
+key.converter=org.apache.kafka.connect.json.JsonConverter
+value.converter=org.apache.kafka.connect.json.JsonConverter
+
+
+cd plugins
+wget https://repo1.maven.org/maven2/io/debezium/debezium-connector-jdbc/3.0.6.Final/debezium-connector-jdbc-3.0.6.Final-plugin.tar.gz
+
+tar -xvzf debezium-connector-mysql-3.0.6.Final-plugin.tar.gz
+
+# copy jar from plugins to libs
+cp -Rp debezium-connector-jdbc/*.jar ../libs/
+
+#move all jar files in plugins folder 
+mv debezium-connector-jdbc/*.jar .
+
+# copy jar from plugins to libs
+cp -Rp *.jar ../libs/
+
+# restart kafka
+
+#Start Kafka Connect Service:
+bin/connect-standalone.sh config/connect-standalone.properties
+
+#You might check whether or not the connection is runing
+curl -s localhost:8083/ | jq
+curl -s localhost:8083/connector-plugins | jq
+
+
+nano conf/connect-debezium-mysql-sink.json
+
+{
+    "name": "mysql-sink-connector",  
+    "config": {
+        "heartbeat.interval.ms": "3000",                                                            
+        "autoReconnect":"true",
+        "connector.class": "io.debezium.connector.jdbc.JdbcSinkConnector",  
+        "tasks.max": "5",  
+        "connection.url":"jdbc:mysql://localhost:3306/test_db_sink",   # specify sink DB
+        "connection.username": "user_mysql",  
+        "connection.password": "passer",  
+        "insert.mode": "upsert",  
+        "delete.enabled": "true",  
+        "primary.key.mode": "record_key",  
+        "schema.evolution": "basic",  
+        "database.time_zone": "UTC",
+        "auto.evolve": "true",
+        "quote.identifiers":"true",
+        "auto.create":"true",                                 # auto create tables
+        "value.converter.schemas.enable":"true",              # auto reflect schema changes
+        "value.converter":"org.apache.kafka.connect.json.JsonConverter",
+        "table.name.format": "${topic}",
+        "topics.regex":"fullfillment.test_db.*",  # topics regexp to replicate
+        "pk.mode" :"kafka"
+  }
+}
+
+
+
+- start kafka
+- clean all topics
+- update conf/connect-standalone.properties
+- update conf/connect-debezium-mysql.json
+- update conf/connect-debezium-mysql-sink.json
+- update jar
+- stop kafka
+- delete offsets file (/home/nanpson/data/kafka/data/connect.offsets, mv connect.offsets connect.offsets.bak3)
+- create database test_db_sink
+- start kafka
+- bin/connect-standalone.sh config/connect-standalone.properties config/connect-debezium-mysql.json conf/connect-debezium-mysql-sink.json
 
 
 ####### Trash #####
@@ -269,21 +373,120 @@ schemas.enable=false
 
 
 
+rm -rf angus-activation-2.0.0.jar
 rm -rf antlr4-runtime-4.10.1.jar
-rm -rf zstd-jni-1.5.6-4.jar
-rm -rf mysql-connector-j-9.1.0.jar
-rm -rf mysql-binlog-connector-java-0.40.2.jar
+rm -rf byte-buddy-1.14.11.jar
+rm -rf c3p0-0.9.5.5.jar
+rm -rf caffeine-2.9.3.jar
+rm -rf classmate-1.5.1.jar
 rm -rf debezium-api-3.0.6.Final.jar
+rm -rf debezium-connector-binlog-3.0.6.Final.jar
+rm -rf debezium-connector-jdbc-3.0.6.Final.jar
+rm -rf debezium-connector-mysql-3.0.6.Final.jar
 rm -rf debezium-core-3.0.6.Final.jar
 rm -rf debezium-ddl-parser-3.0.6.Final.jar
+rm -rf debezium-sink-3.0.6.Final.jar
+rm -rf debezium-storage-file-3.0.6.Final.jar
+rm -rf debezium-storage-kafka-3.0.6.Final.jar
+rm -rf error_prone_annotations-2.10.0.jar
+rm -rf hibernate-c3p0-6.4.8.Final.jar
+rm -rf hibernate-commons-annotations-6.0.6.Final.jar
+rm -rf hibernate-core-6.4.8.Final.jar
+rm -rf istack-commons-runtime-4.1.1.jar
+rm -rf jakarta.activation-api-2.1.0.jar
+rm -rf jakarta.inject-api-2.0.1.jar
+rm -rf jakarta.persistence-api-3.1.0.jar
+rm -rf jakarta.transaction-api-2.0.1.jar
+rm -rf jakarta.xml.bind-api-4.0.0.jar
+rm -rf jandex-3.1.2.jar
+rm -rf jaxb-core-4.0.2.jar
+rm -rf jaxb-runtime-4.0.2.jar
+rm -rf jboss-logging-3.5.0.Final.jar
+rm -rf jcl-over-slf4j-1.7.36.jar
+rm -rf jna-5.12.1.jar
+rm -rf jna-platform-5.12.1.jar
+rm -rf mariadb-java-client-3.2.0.jar
+rm -rf mchange-commons-java-0.2.19.jar
+rm -rf mssql-jdbc-12.4.2.jre8.jar
+rm -rf mysql-binlog-connector-java-0.40.2.jar
+rm -rf mysql-connector-j-9.1.0.jar
+rm -rf ojdbc11-21.15.0.0.jar
+rm -rf postgresql-42.6.1.jar
+rm -rf txw2-4.0.2.jar
+rm -rf waffle-jna-3.2.0.jar
+rm -rf zstd-jni-1.5.6-4.jar
+
+
+
+
+rm -rf angus-activation-2.0.0.jar
+rm -rf antlr4-runtime-4.10.1.jar
+rm -rf byte-buddy-1.14.11.jar
+rm -rf c3p0-0.9.5.5.jar
+rm -rf caffeine-2.9.3.jar
+rm -rf classmate-1.5.1.jar
+rm -rf debezium-api-3.0.6.Final.jar
+rm -rf debezium-connector-jdbc-3.0.6.Final.jar
+rm -rf debezium-core-3.0.6.Final.jar
+rm -rf debezium-sink-3.0.6.Final.jar
+rm -rf error_prone_annotations-2.10.0.jar
+rm -rf hibernate-c3p0-6.4.8.Final.jar
+rm -rf hibernate-commons-annotations-6.0.6.Final.jar
+rm -rf hibernate-core-6.4.8.Final.jar
+rm -rf istack-commons-runtime-4.1.1.jar
+rm -rf jakarta.activation-api-2.1.0.jar
+rm -rf jakarta.inject-api-2.0.1.jar
+rm -rf jakarta.persistence-api-3.1.0.jar
+rm -rf jakarta.transaction-api-2.0.1.jar
+rm -rf jakarta.xml.bind-api-4.0.0.jar
+rm -rf jandex-3.1.2.jar
+rm -rf jaxb-core-4.0.2.jar
+rm -rf jaxb-runtime-4.0.2.jar
+rm -rf jboss-logging-3.5.0.Final.jar
+rm -rf jcl-over-slf4j-1.7.36.jar
+rm -rf jna-5.12.1.jar
+rm -rf jna-platform-5.12.1.jar
+rm -rf mariadb-java-client-3.2.0.jar
+rm -rf mchange-commons-java-0.2.19.jar
+rm -rf mssql-jdbc-12.4.2.jre8.jar
+rm -rf mysql-connector-j-9.1.0.jar
+rm -rf ojdbc11-21.15.0.0.jar
+rm -rf postgresql-42.6.1.jar
+rm -rf txw2-4.0.2.jar
+rm -rf waffle-jna-3.2.0.jar
+
+
+
+rm -rf CHANGELOG.md
+rm -rf CONTRIBUTE.md
+rm -rf COPYRIGHT.txt
+rm -rf LICENSE-3rd-PARTIES.txt
+rm -rf LICENSE.txt
+rm -rf README.md
+rm -rf README_JA.md
+rm -rf README_KO.md
+rm -rf README_ZH.md
+rm -rf debezium-core-3.0.6.Final.jar
+rm -rf debezium-api-3.0.6.Final.jar
+rm -rf debezium-connector-binlog-3.0.6.Final.jar
 rm -rf debezium-storage-kafka-3.0.6.Final.jar
 rm -rf debezium-storage-file-3.0.6.Final.jar
-rm -rf debezium-connector-binlog-3.0.6.Final.jar
+rm -rf debezium-ddl-parser-3.0.6.Final.jar
+rm -rf antlr4-runtime-4.10.1.jar
+rm -rf mysql-binlog-connector-java-0.40.2.jar
+rm -rf zstd-jni-1.5.6-4.jar
+rm -rf mysql-connector-j-9.1.0.jar
 rm -rf debezium-connector-mysql-3.0.6.Final.jar
 
 
 
-`/connector-plugins/{connectorType}/config/validate`
-'topic.prefix'
+
+
+#####
+debezium example:
+	https://github.com/ayyoubmaul/cdc-debezium-kafka/tree/main
+	https://github.com/debezium/debezium-examples?tab=readme-ov-file
+		https://github.com/debezium/debezium-examples/tree/main/end-to-end-demo
+	https://github.com/trannhatnguyen2/streaming_data_processing/tree/main
 
 
