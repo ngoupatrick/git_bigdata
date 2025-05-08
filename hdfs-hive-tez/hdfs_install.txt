@@ -14,7 +14,11 @@ prepare env:
 
 create user and configure ssh
 	sudo adduser hadoop
+		--> password hadoop
 	sudo usermod -aG sudo hadoop
+
+	>> sudo visudo
+	hadoop ALL=(ALL:ALL) ALL
 
 	su - hadoop
 	ssh-keygen -t rsa -P '' -f ~/.ssh/id_rsa
@@ -22,9 +26,6 @@ create user and configure ssh
 	chmod 640 ~/.ssh/authorized_keys
 	chmod 700 ~/.ssh
 	ssh localhost
-	
-	>> sudo visudo
-	hadoop ALL=(ALL:ALL) ALL
 
 download and install hdfs ans yarn
 	urls:
@@ -87,15 +88,15 @@ Start and Stop
 
 test
 	jps -lm
-	ss -antpl | grep java	
-	$HADOOP_HOME/bin/hadoop version
+	ss -antpl | grep java
+	hadoop version
 
 Access Hadoop Namenode and Resource Manager
 	sudo apt install net-tools
 	ifconfig
 	
-	http://server-IP:9870
-		http://hadoop:9870	
+	http://server-IP:9870 [50070]
+		http://hadoop:9870 [50070]
 	http://hadoop:8088
 	
 test hdfs and yarn -> Verify the Hadoop Cluster 

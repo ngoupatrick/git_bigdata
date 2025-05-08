@@ -4,7 +4,7 @@ Check MYSQL:
 	mysql --version
 	sudo mysql -u root
 
-Assign 'mysql' as password to MYSQL root user
+Assign 'mysql' as password to MYSQL root user (!!! BUT I DIDN'T DO IT, I USED WITHOUT PASSWORD)
 	>> ALTER USER 'root'@'localhost' IDENTIFIED WITH mysql_native_password BY 'mysql';
 			--> WARNING: 'mysql_native_password' is deprecated and will be removed in a future release. Please use caching_sha2_password instead
 		OR
@@ -19,13 +19,17 @@ Create Hive user
 		GRANT ALL PRIVILEGES ON hive.* TO 'hive'@'%';
 		GRANT ALL PRIVILEGES ON hive.* TO 'hive'@'localhost';
 		flush privileges;
-		exit
+		exit;
 
 Restart mysql service:
-	service mysqld stop
-	service mysqld start
-	service mysqld status
-	service mysqld enable
+	sudo service mysqld stop
+		sudo service mysql stop
+	sudo service mysqld start
+		sudo service mysql start
+	sudo service mysqld status
+		sudo service mysql status
+	sudo service mysqld enable
+		sudo service mysql enable
 
 edit ~/.bashrc
 	>> nano ~/.bashrc
@@ -38,7 +42,7 @@ DOWNLOAD HIVE
 		https://archive.apache.org/dist/hive/		
 	tar -xvzf apache-hive-4.0.0-bin.tar.gz
 	mv apache-hive-4.0.0-bin hive
-		cp $HIVE_CONF_DIR/hive-default.xml.template $HIVE_CONF_DIR/hive-site.xml
+	cp $HIVE_CONF_DIR/hive-default.xml.template $HIVE_CONF_DIR/hive-site.xml
 
 MYSQL DRIVER
 	cd
@@ -65,12 +69,14 @@ HIVE SITE CONFIG
 	cp $HIVE_CONF_DIR/hive-env.sh.template $HIVE_CONF_DIR/hive-env.sh
 
 	>> nano $HIVE_CONF_DIR/hive-env.sh
-	export JAVA_HOME=$(readlink -f /usr/bin/java | sed "s:bin/java::")
+	#export JAVA_HOME=$(readlink -f /usr/bin/java | sed "s:bin/java::")
+	export JAVA_HOME=/usr/lib/jvm/java-11-openjdk-amd64
 	export HADOOP_HOME=~/hadoop
 
 	#cp $HIVE_CONF_DIR/hive-site.xml.template $HIVE_CONF_DIR/hive-site.xml
 	>> nano $HIVE_CONF_DIR/hive-site.xml
 	--->>> remove "&#8" from "<name>hive.txn.xlock.iow</name>"
+	--> update config in $HIVE_CONF_DIR/hive-site.xml with values in hive-site.xml
 
 CREATE hive DATABASE in mysql:
 	schematool -initSchema -dbType mysql
@@ -83,6 +89,8 @@ RUNNING HIVE
 	beeline -u 'jdbc:hive2://0.0.0.0:10000/' -n hadoop
 
 TEST hive:
+	CREATE DATABASE test_db;
+	use test_db;
 	CREATE TABLE IF NOT EXISTS employee ( eid int, name String);
 	INSERT INTO employee VALUES (11,'Patrick');
 	SELECT * FROM employee;
