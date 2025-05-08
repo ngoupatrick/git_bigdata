@@ -1,0 +1,37 @@
+<configuration>
+	<property>
+		<name>tez.lib.uris</name>
+		<value>hdfs://0.0.0.0:9000/user/tez/share/tez.tar.gz,hdfs://0.0.0.0:9000/user/tez/lib,hdfs://0.0.0.0:9000/user/tez/extlibs</value>
+		<!--<value>hdfs://0.0.0.0:9000/user/tez/share/tez.tar.gz</value>-->
+		<!--<value>hdfs://0.0.0.0:9000/apps/tez/apache-tez-0.10.3-bin.tar.gz,hdfs://0.0.0.0:9000/apps/tez/apache-tez-0.10.3-bin/lib,hdfs://0.0.0.0:9000/apps/tez/apache-tez-0.10.3-bin</value>-->
+	</property>
+	<property>
+		<name>tez.tez-ui.history-url.base</name>
+		<value>http://0.0.0.0:8081</value>
+	</property>
+	<property>
+		<name>yarn.timeline-service.enabled</name>
+		<value>true</value>
+	</property>
+	<!--<property><name>tez.session.am.dag.submit.timeout.secs</name><value>2</value></property>-->
+	<property>
+		<name>tez.history.logging.service.class</name>
+		<value>org.apache.tez.dag.history.logging.ats.ATSHistoryLoggingService</value>
+	</property>
+	<property>
+		<name>tez.allow.disabled.timeline-domains</name>
+		<value>true</value>
+	</property>
+	<property>
+		<name>tez.am.history.logging.enabled</name>
+		<value>true</value>
+	</property>
+	<property>
+		<name>tez.dag.history.logging.enabled</name>
+		<value>true</value>
+	</property>
+	<property>
+		<name>tez.am.view-acls</name>
+		<value>*</value>
+	</property>
+</configuration>

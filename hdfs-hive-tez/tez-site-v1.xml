@@ -1,0 +1,111 @@
+<?xml version="1.0"?>
+<!--
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License. See accompanying LICENSE file.
+-->
+<?xml-stylesheet type="text/xsl" href="configuration.xsl"?>
+<!-- WARNING: THIS IS A GENERATED TEMPLATE PURELY FOR DOCUMENTATION PURPOSES
+ AND SHOULD NOT BE USED AS A CONFIGURATION FILE FOR TEZ -->
+<configuration>
+    <property>
+        <name>tez.lib.uris</name>
+        <value>hdfs://0.0.0.0:9000/user/tez/share/tez.tar.gz,hdfs://0.0.0.0:9000/user/tez/lib/,hdfs://0.0.0.0:9000/user/tez/extlibs/</value>
+        <!--<value>hdfs://0.0.0.0:9000/user/tez/share/tez.tar.gz</value>-->
+    </property>
+    <property>
+        <name>tez.tez-ui.history-url.base</name>
+        <value>http://0.0.0.0:8081</value>
+    </property>
+    <property>
+        <name>yarn.timeline-service.enabled</name>
+        <value>true</value>
+    </property>
+    <!--<property><name>tez.session.am.dag.submit.timeout.secs</name><value>2</value></property>-->
+    <property>
+        <name>tez.history.logging.service.class</name>
+        <value>org.apache.tez.dag.history.logging.ats.ATSHistoryLoggingService</value>
+    </property>
+    <property>
+        <name>tez.allow.disabled.timeline-domains</name>
+        <value>true</value>
+    </property>
+    <property>
+        <name>tez.am.history.logging.enabled</name>
+        <value>true</value>
+    </property>
+    <property>
+        <name>tez.dag.history.logging.enabled</name>
+        <value>true</value>
+    </property>
+    <property>
+        <name>tez.am.view-acls</name>
+        <value>*</value>
+    </property>
+    <!-- ADDED -->
+    <property>
+        <name>tez.am.yarn.scheduler.class</name>
+        <value>org.apache.tez.dag.app.rm.YarnTaskSchedulerService</value>
+    </property>
+    <property>
+        <name>tez.history.logging.service.class</name>
+        <value>org.apache.tez.dag.history.logging.impl.SimpleHistoryLoggingService</value>
+    </property>
+    <property>
+        <name>tez.dag.recovery.enabled</name>
+        <value>false</value>
+    </property>
+    <property>
+        <name>tez.task.timeout-ms</name>
+        <value>500000</value>
+    </property>
+    <property>
+        <name>tez.am.client.am.thread-count</name>
+        <value>5</value>
+    </property>
+    <property>
+        <name>tez.am.dag.cleanup.on.completion</name>
+        <value>true</value>
+    </property>
+    <property>
+        <name>tez.am.resource.cpu.vcores</name>
+        <value>1</value>
+    </property>
+    <property>
+        <name>tez.am.resource.memory.mb</name>
+        <value>512</value>
+    </property>
+    <property>
+        <name>tez.am.mode.session</name>
+        <value>false</value>
+    </property>
+    <property>
+        <name>tez.am.vertex.max-task-concurrency</name>
+        <value>2</value>
+    </property>
+    <property>
+        <name>tez.am.tez-ui.webservice.enable</name>
+        <value>true</value>
+    </property>
+    <property>
+        <name>tez.ignore.lib.uris</name>
+        <value>false</value>
+    </property>
+    <property>
+        <name>tez.task.resource.cpu.vcores</name>
+        <value>1</value>
+    </property>
+    <property>
+        <name>tez.task.resource.memory.mb</name>
+        <value>512</value>
+    </property>
+    <!-- END ADDED -->
+</configuration>

@@ -1,0 +1,17 @@
+<!--TEZ-->
+<property>
+	<name>hive.tez.container.size</name>
+	<value>512</value>
+</property>
+<property>
+	<name>hive.execution.engine</name>
+	<value>tez</value>
+</property>
+<!-- ADD -->
+<!--<property><name>tez.configuration</name><value>~/tez/conf/tez-site.xml</value><description/></property>-->
+<property>
+	<name>tez.use.cluster.hadoop-libs</name>
+	<value>true</value>
+	<description/>
+</property>
+<!-- END ADD -->

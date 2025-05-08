@@ -1,0 +1,72 @@
+BACKUP OLD XML files
+	mapred-site.xml
+	hive-site.xml
+	yarn-site.xml
+	hdfs-site.xml
+
+DOWNLOAD tez
+	wget https://dlcdn.apache.org/tez/0.10.3/apache-tez-0.10.3-bin.tar.gz
+		https://dlcdn.apache.org/tez
+	mkdir tez
+	tar -xzvf apache-tez-0.10.3-bin.tar.gz --directory tez --strip-components 1
+	mv /home/hadoop/tez/lib/slf4j-log4j12-1.7.10.jar /home/hadoop/
+		
+		mv /home/hadoop/tez/lib/slf4j-reload4j-1.7.36.jar /home/hadoop/
+			mv /home/hadoop/tez/lib/slf4j-reload4j-1.7.36.jar /home/hadoop/
+			cp /home/hadoop/slf4j-reload4j-1.7.36.jar /home/hadoop/tez/lib/
+			rm -rf /home/hadoop/tez/lib/slf4j-reload4j-1.7.36.jar
+
+Set ENV VAR:
+	>> nano ~/.bashrc
+	--> add the content of bashrc_tez.txt
+	>> source ~/.bashrc
+
+ADD TEZ FILES IN HDFS
+	
+	hdfs dfs -rm -r -skipTrash /user/tez/*
+	hdfs dfs -rm -r -skipTrash /tmp/hive/hadoop/_tez_session_dir/*
+
+	
+	hdfs dfs -mkdir /user/tez
+	hdfs dfs -mkdir /user/tez/extlibs
+	hdfs dfs -chmod a+w /user/tez
+	hdfs dfs -chmod a+w /user/tez/extlibs
+	
+	
+	hdfs dfs -put $TEZ_HOME/share /user/tez/
+	hdfs dfs -put $TEZ_HOME/lib /user/tez/
+	hdfs dfs -put $TEZ_HOME/*.jar /user/tez/extlibs/
+	
+		hdfs dfs -put $TEZ_HOME/* /user/tez
+			hdfs dfs -copyFromLocal tez-dist/target/tez-x.y.z-SNAPSHOT.tar.gz /user/tez/
+			
+	hdfs dfs -chmod a+w /user/tez
+	hdfs dfs -ls /user/tez # verify
+
+Edit MAPRED SITE XML
+	>> nano $HADOOP_HOME/etc/hadoop/mapred-site.xml
+	mapreduce.framework.name=yarn-tez
+
+TEZ CONFIG XML
+	Version 0
+		>> nano $TEZ_HOME/conf/tez-site.xml
+		--> add the content of tez-site-v0.xml
+	Version 1
+		>> nano $TEZ_HOME/conf/tez-site.xml
+		--> add the content of tez-site-v1.xml
+
+update HIVE SITE CONFIG
+	>> nano $HIVE_CONF_DIR/hive-site.xml
+	--> add the content of hive-site-tez.xml
+
+Update YARN SITE file
+	>> nano $HADOOP_HOME/etc/hadoop/yarn-site.xml
+	
+  <property>
+    <name>yarn.nodemanager.resource.memory-mb</name>
+    <value>4096</value>
+  </property>
+  <property>
+    <name>yarn.scheduler.minimum-allocation-mb</name>
+    <value>2048</value>
+  </property>

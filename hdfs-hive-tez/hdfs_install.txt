@@ -1,0 +1,105 @@
+ckeck java:
+	java --version
+	sudo update-alternatives --config java
+
+prepare env:
+	sudo apt update -y
+	sudo apt install openssh-server openssh-client bzip2 build-essential -y
+	sudo apt install openjdk-11-jre-headless -y
+	
+	java --version
+	javac --version
+	which ssh
+	which sshd
+
+create user and configure ssh
+	sudo adduser hadoop
+	sudo usermod -aG sudo hadoop
+
+	su - hadoop
+	ssh-keygen -t rsa -P '' -f ~/.ssh/id_rsa
+	cat ~/.ssh/id_rsa.pub >> ~/.ssh/authorized_keys
+	chmod 640 ~/.ssh/authorized_keys
+	chmod 700 ~/.ssh
+	ssh localhost
+	
+	>> sudo visudo
+	hadoop ALL=(ALL:ALL) ALL
+
+download and install hdfs ans yarn
+	urls:
+		https://hadoop.apache.org/releases.html
+	wget https://dlcdn.apache.org/hadoop/common/hadoop-3.4.1/hadoop-3.4.1.tar.gz
+	tar -xvzf hadoop-3.4.1.tar.gz
+	mv hadoop-3.4.1 hadoop
+	chown -R hadoop:hadoop hadoop
+
+edit ~/.bashrc
+	>> nano ~/.bashrc
+	--> add the content of bashrc_hdfs.txt
+	>> source ~/.bashrc
+
+create dir folders
+	>> cd hadoop/
+	mkdir -p ~/hadoopdata/hdfs/{namenode,datanode}
+	mkdir -p ~/tmpdata
+	mkdir ~/logs
+	mkdir ~/PID
+
+add rights
+	sudo chown -R hadoop:hadoop ~/hadoopdata/hdfs
+	sudo chown -R hadoop:hadoop ~/tmpdata
+	sudo chown -R hadoop:hadoop ~/logs
+	sudo chown -R hadoop:hadoop ~/PID
+
+edit hadoop-env.sh file
+	>> nano $HADOOP_HOME/etc/hadoop/hadoop-env.sh
+	--> add the content of hadoop-env.sh
+
+add some libs
+	cd $HADOOP_HOME/lib
+	wget https://jcenter.bintray.com/javax/activation/javax.activation-api/1.2.0/javax.activation-api-1.2.0.jar
+	chmod a+x javax.activation-api-1.2.0.jar
+	cd ~/hadoop/
+
+edit core-site.xml
+	>> nano $HADOOP_HOME/etc/hadoop/core-site.xml
+	--> add the content of core-site.xml
+
+edit hdfs-site.xml
+	>> nano $HADOOP_HOME/etc/hadoop/hdfs-site.xml
+	--> add the content of hdfs-site.xml
+
+edit mapred-site.xml
+	>> nano $HADOOP_HOME/etc/hadoop/mapred-site.xml
+	--> add the content of mapred-site.xml
+
+edit yarn-site.xml
+	>> nano $HADOOP_HOME/etc/hadoop/yarn-site.xml
+	--> add the content of yarn-site.xml
+
+Start and Stop		
+	hadoop version
+	hdfs namenode -format
+	
+	start-all.sh && mapred --daemon start historyserver && yarn --daemon start timelineserver
+	stop-all.sh && mapred --daemon stop historyserver && yarn --daemon stop timelineserver
+
+test
+	jps -lm
+	ss -antpl | grep java	
+	$HADOOP_HOME/bin/hadoop version
+
+Access Hadoop Namenode and Resource Manager
+	sudo apt install net-tools
+	ifconfig
+	
+	http://server-IP:9870
+		http://hadoop:9870	
+	http://hadoop:8088
+	
+test hdfs and yarn -> Verify the Hadoop Cluster 
+	hdfs dfs -mkdir /test1
+	hdfs dfs -mkdir /logs
+	hdfs dfs -ls /
+	hdfs dfs -put /var/log/* /logs/

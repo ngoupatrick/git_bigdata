@@ -1,0 +1,28 @@
+<configuration>
+	<property>
+		<name>yarn.app.mapreduce.am.env</name>
+		<value>HADOOP_MAPRED_HOME=${HADOOP_HOME}</value>
+	</property>
+	<property>
+		<name>mapreduce.map.env</name>
+		<value>HADOOP_MAPRED_HOME=${HADOOP_HOME}</value>
+	</property>
+	<property>
+		<name>mapreduce.reduce.env</name>
+		<value>HADOOP_MAPRED_HOME=${HADOOP_HOME}</value>
+	</property>
+	<property>
+		<name>mapreduce.framework.name</name>
+		<!--<value>yarn</value>-->
+		<value>yarn-tez</value>
+	</property>
+	<property>
+		<name>mapreduce.jobhistory.address</name>
+		<value>0.0.0.0:10020</value>
+		<description>Address and port for Job History Server (default 0.0.0.0:10020)</description>
+	</property>
+	<property>
+		<name>mapreduce.application.classpath</name>
+		<value>$HADOOP_CLASSPATH:$HADOOP_HOME/share/hadoop/mapreduce/*:$HADOOP_MAPRED_HOME/share/hadoop/mapreduce/lib/*</value>
+	</property>
+</configuration>

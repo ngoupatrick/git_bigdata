@@ -1,0 +1,106 @@
+Check MYSQL:
+	sudo apt install mysql-server -y
+		pass mysql [mysql_secure_installation]
+	mysql --version
+	sudo mysql -u root
+
+Assign 'mysql' as password to MYSQL root user
+	>> ALTER USER 'root'@'localhost' IDENTIFIED WITH mysql_native_password BY 'mysql';
+			--> WARNING: 'mysql_native_password' is deprecated and will be removed in a future release. Please use caching_sha2_password instead
+		OR
+
+		ALTER USER 'root'@'localhost' IDENTIFIED BY 'mysql';
+		
+Create Hive user
+	>> mysql -uroot -pmysql
+		CREATE USER 'hive'@'%' identified by 'hive';
+		CREATE USER 'hive'@'localhost' identified by 'hive';
+		CREATE DATABASE hive;
+		GRANT ALL PRIVILEGES ON hive.* TO 'hive'@'%';
+		GRANT ALL PRIVILEGES ON hive.* TO 'hive'@'localhost';
+		flush privileges;
+		exit
+
+Restart mysql service:
+	service mysqld stop
+	service mysqld start
+	service mysqld status
+	service mysqld enable
+
+edit ~/.bashrc
+	>> nano ~/.bashrc
+	--> add the content of bashrc_hive.txt
+	>> source ~/.bashrc
+
+DOWNLOAD HIVE	
+	cd
+	wget https://archive.apache.org/dist/hive/hive-4.0.0/apache-hive-4.0.0-bin.tar.gz
+		https://archive.apache.org/dist/hive/		
+	tar -xvzf apache-hive-4.0.0-bin.tar.gz
+	mv apache-hive-4.0.0-bin hive
+		cp $HIVE_CONF_DIR/hive-default.xml.template $HIVE_CONF_DIR/hive-site.xml
+
+MYSQL DRIVER
+	cd
+	wget https://repo1.maven.org/maven2/mysql/mysql-connector-java/8.0.27/mysql-connector-java-8.0.27.jar
+	chown hadoop:hadoop mysql-connector-java-8.0.27.jar
+	cp /home/hadoop/mysql-connector-java-8.0.27.jar $HIVE_HOME/lib/
+
+CLEAN HIVE AND HADOOP
+	mv $HIVE_HOME/lib/guava-22.0.jar /home/hadoop/
+	cp $HADOOP_HOME/share/hadoop/common/lib/guava-27.0-jre.jar $HIVE_HOME/lib/
+	mv $HIVE_HOME/lib/log4j-slf4j-impl-2.18.0.jar /home/hadoop/
+
+create HDFS folders for hive:
+	hdfs dfs -mkdir /user/
+	hdfs dfs -mkdir /user/hive
+	hdfs dfs -mkdir /user/hive/warehouse
+	hdfs dfs -mkdir /tmp
+	hdfs dfs -mkdir /tmp/hive
+	hdfs dfs -chmod a+w /tmp/hive
+	hdfs dfs -chmod a+w /user/hive/warehouse
+
+HIVE SITE CONFIG
+	cd
+	cp $HIVE_CONF_DIR/hive-env.sh.template $HIVE_CONF_DIR/hive-env.sh
+
+	>> nano $HIVE_CONF_DIR/hive-env.sh
+	export JAVA_HOME=$(readlink -f /usr/bin/java | sed "s:bin/java::")
+	export HADOOP_HOME=~/hadoop
+
+	#cp $HIVE_CONF_DIR/hive-site.xml.template $HIVE_CONF_DIR/hive-site.xml
+	>> nano $HIVE_CONF_DIR/hive-site.xml
+	--->>> remove "&#8" from "<name>hive.txn.xlock.iow</name>"
+
+CREATE hive DATABASE in mysql:
+	schematool -initSchema -dbType mysql
+	----> check database hive
+		mysql -uhive -phive
+
+RUNNING HIVE
+	hive --service metastore &
+	hive --service hiveserver2 &
+	beeline -u 'jdbc:hive2://0.0.0.0:10000/' -n hadoop
+
+TEST hive:
+	CREATE TABLE IF NOT EXISTS employee ( eid int, name String);
+	INSERT INTO employee VALUES (11,'Patrick');
+	SELECT * FROM employee;
+	
+	select count(eid) compter, sum(eid) somme, avg(eid) avg, Var_samp(eid) varia, Stddev_samp(eid) stde   from employee;
+
+update yarn-site.xml file
+
+>> nano $HADOOP_HOME/etc/hadoop/yarn-site.xml
+
+<?xml version="1.0" encoding="UTF-8" ?>
+<configuration>  
+  <!--
+  <property>
+	<name>yarn.resourcemanager.hostname</name>
+	<value>0.0.0.0</value>
+  </property>
+  -->
+</configuration>
+
+
