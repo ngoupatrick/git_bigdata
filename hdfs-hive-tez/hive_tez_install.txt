@@ -1,17 +1,25 @@
 BACKUP OLD XML files
 	mapred-site.xml
+		cp -Rp $HADOOP_HOME/etc/hadoop/mapred-site.xml $HADOOP_HOME/etc/hadoop/mapred-site.xml.bak
 	hive-site.xml
+		cp -Rp $HIVE_CONF_DIR/hive-site.xml $HIVE_CONF_DIR/hive-site.xml.bak
 	yarn-site.xml
+		cp -Rp $HADOOP_HOME/etc/hadoop/yarn-site.xml $HADOOP_HOME/etc/hadoop/yarn-site.xml.bak
 	hdfs-site.xml
+		cp -Rp $HADOOP_HOME/etc/hadoop/hdfs-site.xml $HADOOP_HOME/etc/hadoop/hdfs-site.xml.bak
+	core-site.xml
+		cp -Rp $HADOOP_HOME/etc/hadoop/core-site.xml $HADOOP_HOME/etc/hadoop/core-site.xml.bak
 
 DOWNLOAD tez
 	wget https://dlcdn.apache.org/tez/0.10.3/apache-tez-0.10.3-bin.tar.gz
 		https://dlcdn.apache.org/tez
 	mkdir tez
 	tar -xzvf apache-tez-0.10.3-bin.tar.gz --directory tez --strip-components 1
+	mv /home/hadoop/tez/lib/slf4j-reload4j-1.7.36.jar /home/hadoop/
+
 	mv /home/hadoop/tez/lib/slf4j-log4j12-1.7.10.jar /home/hadoop/
 		
-		mv /home/hadoop/tez/lib/slf4j-reload4j-1.7.36.jar /home/hadoop/
+		
 			mv /home/hadoop/tez/lib/slf4j-reload4j-1.7.36.jar /home/hadoop/
 			cp /home/hadoop/slf4j-reload4j-1.7.36.jar /home/hadoop/tez/lib/
 			rm -rf /home/hadoop/tez/lib/slf4j-reload4j-1.7.36.jar

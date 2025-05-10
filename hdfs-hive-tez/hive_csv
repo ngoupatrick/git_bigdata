@@ -1,0 +1,53 @@
+# HIVE AND CSV
+
+steps:
+   -create hive table locate in "/tmp/quincaillerie" folder
+   -create sample csv files
+   -load these csv files in "quincaillerie" table
+   -look at folder "/tmp/quincaillerie", you will see csv files
+
+-check if /tmp folder exist in hdfs, if not create it
+   hdfs dfs -mkdir /tmp/
+
+-create database "test2" and table "quincaillerie"
+
+CREATE DATABASE IF NOT EXISTS test2;
+USE test2;
+CREATE EXTERNAL TABLE test2.`quincaillerie`(             
+   `id` int,                                        
+   `code_client` string,                            
+   `code_produit` string,                           
+   `qte` int,                                       
+   `date_ops` string,                               
+   `pu` float)   
+ROW FORMAT DELIMITED FIELDS TERMINATED BY  ','
+COLLECTION ITEMS TERMINATED BY '\n'
+LOCATION '/tmp/quincaillerie'
+TBLPROPERTIES(
+'skip.header.line.count'='1'
+);
+
+
+- create sample csv files locallly
+   cd
+   mkdir data_csv
+   cd data_csv
+
+cat > f1.csv
+id,code_client,code_produit,qte,date_ops,pu
+1,CLI1,PROD1,3,1710806400000,40.0
+2,CLI2,PROD1,4,1710806800000,50.0
+
+cat > f2.csv
+id,code_client,code_produit,qte,date_ops,pu
+3,CLI2,PROD2,5,1710806400000,100.0
+4,CLI2,PROD1,10,1710806800000,50.0
+
+- load csv files into hdfs (from hive command line)
+   LOAD DATA LOCAL INPATH '/home/hadoop/data_csv/f1.csv' INTO TABLE test2.`quincaillerie`;
+   LOAD DATA LOCAL INPATH '/home/hadoop/data_csv/f2.csv' INTO TABLE test2.`quincaillerie`;
+
+- check
+   select * from test2.`quincaillerie`;
+   select sum(qte*pu) as total from test2.`quincaillerie`;
+   hdfs dfs -ls /tmp/quincaillerie

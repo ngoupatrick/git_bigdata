@@ -16,11 +16,11 @@
 		<!--<value>yarn</value>-->
 		<value>yarn-tez</value>
 	</property>
-	<property>
+	<!--<property>
 		<name>mapreduce.jobhistory.address</name>
 		<value>0.0.0.0:10020</value>
 		<description>Address and port for Job History Server (default 0.0.0.0:10020)</description>
-	</property>
+	</property>-->
 	<property>
 		<name>mapreduce.application.classpath</name>
 		<value>$HADOOP_CLASSPATH:$HADOOP_HOME/share/hadoop/mapreduce/*:$HADOOP_MAPRED_HOME/share/hadoop/mapreduce/lib/*</value>

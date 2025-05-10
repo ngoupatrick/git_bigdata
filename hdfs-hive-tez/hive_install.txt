@@ -88,6 +88,9 @@ RUNNING HIVE
 	hive --service hiveserver2 &
 	beeline -u 'jdbc:hive2://0.0.0.0:10000/' -n hadoop
 
+EXIT beeline:
+	>!q
+
 TEST hive:
 	CREATE DATABASE test_db;
 	use test_db;
@@ -96,6 +99,8 @@ TEST hive:
 	SELECT * FROM employee;
 	
 	select count(eid) compter, sum(eid) somme, avg(eid) avg, Var_samp(eid) varia, Stddev_samp(eid) stde   from employee;
+
+TEST hive_csv.txt
 
 update yarn-site.xml file
 
