@@ -1,0 +1,152 @@
+Downoad and decompress gz file
+	wget https://archive.apache.org/dist/spark/spark-3.5.4/spark-3.5.4-bin-hadoop3.tgz
+	mkdir spark
+	tar -xzvf spark-3.5.4-bin-hadoop3.tgz --directory spark --strip-components 1
+
+Setting up connexion to hdfs and hive
+
+	cd $SPARK_HOME/conf
+	ln -s $HIVE_CONF_DIR/hive-site.xml hive-site.xml
+	ln -s $HADOOP_HOME/etc/hadoop/core-site.xml core-site.xml
+	ln -s $HADOOP_HOME/etc/hadoop/hdfs-site.xml hdfs-site.xml
+
+	cp $SPARK_HOME/conf/spark-env.sh.template $SPARK_HOME/conf/spark-env.sh
+	cp $SPARK_HOME/conf/spark-defaults.conf.template $SPARK_HOME/conf/spark-defaults.conf
+	cp $SPARK_HOME/conf/log4j2.properties.template $SPARK_HOME/conf/log4j2.properties
+
+set up python env
+	
+	sudo apt install python3-pip python3-venv -y
+	python3 -m venv /home/hadoop/venv
+	source /home/hadoop/venv/bin/activate
+	pip3 install --no-cache-dir pyspark pandas koalas scipy mlflow  mysql-connector-python delta-sparks3fs matplotlib seaborn plotly pyarrow fastparquet pyodbc requests google-cloud-storageazure-storage-blob kafka-python
+	pip3 install --no-cache-dir psycopg2 spark-sklearn
+
+
+
+
+Set ENV VAR:
+	>> nano ~/.bashrc
+
+#===== SPARK =====#
+export SPARK_HOME=~/spark
+export PATH=$PATH:$SPARK_HOME/bin:$SPARK_HOME/sbin
+export PYTHONPATH=$SPARK_HOME/python:$PYTHONPATH
+export PYSPARK_DRIVER_PYTHON=python3
+export PYSPARK_PYTHON=python3
+##export PYSPARK_PYTHON=/usr/bin/python3
+##export SPARK_DIST_CLASSPATH=$HADOOP_CLASSPATH
+export SPARK_DIST_CLASSPATH=$HADOOP_HOME/etc/hadoop/*:$HADOOP_HOME/share/hadoop/common/lib/*:$HADOOP_HOME/share/hadoop/common/*:$HADOOP_HOME/share/hadoop/hdfs/*:$HADOOP_HOME/share/hadoop/hdfs/lib/*:$HADOOP_HOME/share/hadoop/hdfs/*:$HADOOP_HOME/share/hadoop/yarn/lib/*:$HADOOP_HOME/share/hadoop/yarn/*:$HADOOP_HOME/share/hadoop/mapreduce/lib/*:$HADOOP_HOME/share/hadoop/mapreduce/*:$HADOOP_HOME/share/hadoop/tools/lib/*:$HADOOP_CLASSPATH
+
+	>> source ~/.bashrc
+
+Set ENV SPARK VAR
+	
+	>> nano $SPARK_HOME/conf/spark-env.sh
+
+export HADOOP_CONF_DIR=$HADOOP_HOME/etc/hadoop
+export YARN_CONF_DIR=$HADOOP_HOME/etc/hadoop
+export SPARK_MASTER_HOST=0.0.0.0
+export SPARK_MASTER_PORT=7077
+export SPARK_LOG_DIR=~/logs
+export SPARK_LOG_MAX_FILES=3
+export SPARK_PID_DIR=~/PID
+export LD_LIBRARY_PATH="$HADOOP_HOME/lib/native:${LD_LIBRARY_PATH}"
+export SPARK_DIST_CLASSPATH=$HADOOP_HOME/share/hadoop/common/lib/*:$HADOOP_HOME/share/hadoop/common/*:$HADOOP_HOME/share/hadoop/hdfs/*:$HADOOP_HOME/share/hadoop/hdfs/lib/*:$HADOOP_HOME/share/hadoop/yarn/lib/*:$HADOOP_HOME/share/hadoop/yarn/*:$HADOOP_HOME/share/hadoop/mapreduce/lib/*:$HADOOP_HOME/share/hadoop/mapreduce/*:$HADOOP_HOME/share/hadoop/tools/lib/*:$HADOOP_CLASSPATH
+
+Edit SPARK CONF FILE
+	>> nano $SPARK_HOME/conf/spark-defaults.conf
+
+#spark.conf.set("fs.defaultFS", "hdfs://<HDFS_NAMENODE_IP>:9000/")
+spark.master                     yarn
+spark.submit.deployMode          client
+spark.driver.memory              512m
+spark.executor.memory            512m
+spark.yarn.am.memory             512m
+spark.driver.cores               1
+spark.executor.cores             1
+spark.cores.max                  3
+
+spark.eventLog.enabled           true
+spark.eventLog.dir               hdfs://0.0.0.0:9000/spark-logs
+spark.eventLog.compress          true
+
+spark.history.provider           org.apache.spark.deploy.history.FsHistoryProvider
+
+spark.history.fs.logDirectory    hdfs://0.0.0.0:9000/spark-logs
+spark.history.fs.update.interval 10s
+spark.history.ui.port            18080
+
+spark.history.fs.cleaner.enabled true
+spark.history.fs.cleaner.interval 1d
+spark.history.fs.cleaner.maxAge  2d
+spark.history.fs.cleaner.maxNum  10
+spark.history.store.maxDiskUsage 5g
+
+spark.yarn.applicationType       SPARK
+spark.yarn.am.cores              1
+spark.yarn.submit.file.replication 1
+spark.yarn.historyServer.address 0.0.0.0
+
+
+spark.eventLog.rolling.enabled  true
+spark.eventLog.rolling.maxFileSize 128m
+spark.history.fs.eventLog.rolling.maxFilesToRetain 2
+
+
+#spark.driver.extraClassPath /fullpath/firs.jar:/fullpath/second.jar
+#spark.executor.extraClassPath /fullpath/firs.jar:/fullpath/second.jar
+
+Edit log config
+
+	>> $SPARK_HOME/conf/log4j2.properties
+
+rootLogger.level = error
+logger.repl.level = error
+logger.thriftserver.level = error
+
+Update some Hadoop config
+
+	>> nano $HADOOP_HOME/etc/hadoop/mapred-site.xml
+  <property>
+    <name>yarn.app.mapreduce.am.resource.mb</name>
+    <value>1024</value>
+  </property>
+  <property>
+    <name>mapreduce.map.memory.mb</name>
+    <value>512</value>
+  </property>
+  <property>
+    <name>mapreduce.reduce.memory.mb</name>
+    <value>512</value>
+  </property>
+  
+	>> nano $HADOOP_HOME/etc/hadoop/yarn-site.xml
+  <property>
+    <name>yarn.scheduler.maximum-allocation-mb</name>
+    <value>2048</value>
+  </property>
+  <property>
+    <name>yarn.scheduler.minimum-allocation-mb</name>
+    <value>512</value>
+  </property>
+  
+  >> nano $HADOOP_HOME/etc/hadoop/yarn-site.xml
+<configuration>
+  <property>
+    <name>yarn.scheduler.capacity.root.queues</name>
+    <value>default</value>
+  </property>
+  <property>
+    <name>yarn.scheduler.capacity.root.default.capacity</name>
+    <value>100</value>
+  </property>
+  <property>
+    <name>yarn.scheduler.capacity.resource-calculator</name>
+    <value>org.apache.hadoop.yarn.util.resource.DominantResourceCalculator</value>
+  </property>
+</configuration>
+
+
+
+
