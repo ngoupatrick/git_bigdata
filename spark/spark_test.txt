@@ -1,0 +1,136 @@
+# Create dataframe
+
+>>> from datetime import datetime, date
+>>> df = spark.createDataFrame([
+    (1, 2., 'string1', date(2025, 1, 1), datetime(2025, 1, 1, 12, 0), 'red'),
+    (2, 3., 'string2', date(2025, 2, 1), datetime(2025, 1, 2, 12, 0), 'yellow'),
+    (3, 4., 'string3', date(2025, 3, 1), datetime(2025, 1, 3, 12, 0), 'red'),
+    (4, 10.2, 'string3', date(2025, 4, 1), datetime(2025, 1, 4, 12, 0), 'red'),
+], schema='a long, b double, c string, d date, e timestamp, color string')
+
+
+# Viewing Data
+>>> df.show()
+>>> df.printSchema()
+>>> df.columns
+>>> df.count()
+
+# dataframe show
+>>> spark.conf.set('spark.sql.repl.eagerEval.enabled', True)
+>>> df.show()
+
+# some commands
+>>> df.collect()
+>>> df.take(1)
+>>> df.toPandas()
+
+
+# select & describe
+>>> df.select(df.d, df.e).show()
+>>> df.select("a", "b", "color").describe().show()
+
+# filter
+>>> df.filter(df.a == 1).show()
+>>> df.filter(df.a == 1).select("a","b","color").show()
+
+>>> from pyspark.sql.functions import sum
+>>> df.select(sum(df.b)).show()
+
+# transform & add column
+>>> from pyspark.sql.functions import upper
+>>> df.withColumn('upper_color', upper(df.color)).show()
+>>> df.groupby('color').sum().show()
+>>> df.groupby('color').sum('b').show()
+
+
+# write and read
+>>> df.write.csv('foo.csv', header=True)
+>>> spark.read.csv('foo.csv', header=True).show()
+
+>>> df.write.parquet('bar.parquet')
+>>> spark.read.parquet('bar.parquet').show()
+
+# HIVE and CSV
+
+- start metastore
+	hive --service metastore
+
+- start pyspark
+
+# Launch Spark
+
+pyspark \
+--name HIVE_SPARK \
+--conf "spark.sql.catalogImplementation=hive" \
+--driver-java-options "-Dhive.metastore.uris=thrift://localhost:9083" \
+--conf spark.sql.crossJoin.enabled=true
+
+>>> sc.setLogLevel("ERROR")
+>>> spark.conf.set("spark.sql.crossJoin.enabled", "true")
+>>> sc.getConf().getAll()
+>>> spark.conf.get("spark.sql.catalogImplementation")
+>>> spark.conf.set("hive.metastore.uris", "thrift://0.0.0.0:9083")
+
+# Read csv file in hadoop
+>>> df2 = spark.read.option("header", "true").csv("/tmp/quincaillerie/*.csv")
+>>> df2.createOrReplaceTempView("my_csv_table");
+>>> df3=spark.sql("select * from my_csv_table");
+>>> df3.show()
+
+
+# Read hive table
+>>> df = spark.sql("select * from test2.quincaillerie")
+>>> df.show()
+
+
+** HIVE & PARQUET
+
+# Create hive table 'produit'
+
+CREATE DATABASE IF NOT EXISTS test2;
+USE test2;
+
+create external table test2.`produit` (
+	`id` int,
+   `code_produit` string,
+   `intitule` string,
+   `etat` string,
+   `pu` float)
+PARTITIONED BY (groupe string)
+STORED AS PARQUET
+LOCATION '/tmp/produit';
+
+create external table test2.`produit` (`id` int, `code_produit` string, `intitule` string, `etat` string, `pu` float) PARTITIONED BY (groupe string) STORED AS PARQUET LOCATION '/tmp/produit';
+
+
+** SPARK + HIVE + PARQUET
+
+# Create dataframe
+
+>>> columns = ["id", "code_produit", "intitule", "etat", "pu", "groupe"]
+>>> data = [
+	('1', 'PROD1', 'Brouette', 'Good', 55000, 'Construction'),
+    ('2', 'PROD2', 'Pelle', 'Good', 5000, 'Construction'),
+    ('3', 'PROD3', 'Cahier', 'Good', 1200, 'Study'),
+    ('4', 'PROD4', 'Marteau', 'Bad', 1500, 'Construction')
+    ]
+
+>>> df = spark.createDataFrame(data, columns)
+>>> df.show()
+
+# Write and read some parquet file in HDFS
+hdfs dfs -mkdir /tmp/data_parquet
+
+>>> df.write.parquet('/tmp/data_parquet/produit.parquet')
+>>> spark.read.parquet('/tmp/data_parquet/produit.parquet').show()
+
+# read and write data in hive using parquet file
+
+>>> df.write.mode("append").format("parquet").partitionBy('groupe').saveAsTable("test2.produit")
+>>> df_hive = spark.read.table("test2.produit")
+>>> df_hive.show()
+
+
+ALTER TABLE test2.`produit` SET TBLPROPERTIES ('spark.sql.partitionProvider='catalog', 'spark.sql.sources.provider' = 'parquet')
+
+

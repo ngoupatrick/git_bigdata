@@ -14,12 +14,12 @@ steps:
 CREATE DATABASE IF NOT EXISTS test2;
 USE test2;
 CREATE EXTERNAL TABLE test2.`quincaillerie`(             
-   `id` int,                                        
-   `code_client` string,                            
-   `code_produit` string,                           
-   `qte` int,                                       
-   `date_ops` string,                               
-   `pu` float)   
+   `id` int,
+   `code_client` string,
+   `code_produit` string,
+   `qte` int,
+   `date_ops` string,
+   `pu` float)
 ROW FORMAT DELIMITED FIELDS TERMINATED BY  ','
 COLLECTION ITEMS TERMINATED BY '\n'
 LOCATION '/tmp/quincaillerie'
