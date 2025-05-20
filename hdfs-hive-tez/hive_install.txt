@@ -117,3 +117,7 @@ update yarn-site.xml file
 </configuration>
 
 
+Some commands:
+	hdfs dfsadmin -safemode get
+	hdfs dfsadmin -safemode leave
+	hdfs dfsadmin -safemode enter

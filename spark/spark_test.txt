@@ -1,3 +1,7 @@
+# launch spark
+
+pyspark --name TEST_SPARK
+
 # Create dataframe
 
 >>> from datetime import datetime, date
@@ -57,13 +61,19 @@
 
 - start pyspark
 
-# Launch Spark
-
 pyspark \
 --name HIVE_SPARK \
 --conf "spark.sql.catalogImplementation=hive" \
 --driver-java-options "-Dhive.metastore.uris=thrift://localhost:9083" \
---conf spark.sql.crossJoin.enabled=true
+--conf spark.sql.crossJoin.enabled=true \
+--conf spark.sql.hive.convertMetastoreParquet=false \
+--conf spark.sql.parquet.writeLegacyFormat=true \
+--conf spark.mapreduce.input.fileinputformat.input.dir.recursive=true \
+--conf spark.hive.mapred.supports.subdirectories=true \
+--conf spark.mapred.input.dir.recursive=true \
+--conf spark.hadoop.mapreduce.input.fileinputformat.input.dir.recursive=true
+
+# control or assign some properties
 
 >>> sc.setLogLevel("ERROR")
 >>> spark.conf.set("spark.sql.crossJoin.enabled", "true")
@@ -90,6 +100,8 @@ pyspark \
 CREATE DATABASE IF NOT EXISTS test2;
 USE test2;
 
+----> 
+
 create external table test2.`produit` (
 	`id` int,
    `code_produit` string,
@@ -98,39 +110,83 @@ create external table test2.`produit` (
    `pu` float)
 PARTITIONED BY (groupe string)
 STORED AS PARQUET
-LOCATION '/tmp/produit';
+LOCATION '/tmp/produit'
+TBLPROPERTIES ('spark.sql.partitionProvider'='catalog');
 
-create external table test2.`produit` (`id` int, `code_produit` string, `intitule` string, `etat` string, `pu` float) PARTITIONED BY (groupe string) STORED AS PARQUET LOCATION '/tmp/produit';
+MSCK REPAIR TABLE test2.`produit`;
+
+create external table test2.`produit` (`id` int, `code_produit` string, `intitule` string, `etat` string, `pu` float) PARTITIONED BY (groupe string) STORED AS PARQUET LOCATION '/tmp/produit' TBLPROPERTIES ('spark.sql.partitionProvider'='catalog');
+
+
+# add some datas
+
+INSERT INTO test2.`produit` (`id`, `code_produit`, `intitule`, `etat`, `pu`, `groupe`) values ('1', 'PROD1', 'Brouette', 'Good', 55000, 'Construction');
 
 
 ** SPARK + HIVE + PARQUET
+
+# Write and read some parquet file in HDFS
+hdfs dfs -mkdir /tmp/data_parquet
 
 # Create dataframe
 
 >>> columns = ["id", "code_produit", "intitule", "etat", "pu", "groupe"]
 >>> data = [
-	('1', 'PROD1', 'Brouette', 'Good', 55000, 'Construction'),
-    ('2', 'PROD2', 'Pelle', 'Good', 5000, 'Construction'),
-    ('3', 'PROD3', 'Cahier', 'Good', 1200, 'Study'),
-    ('4', 'PROD4', 'Marteau', 'Bad', 1500, 'Construction')
+    (2, 'PROD2', 'Pelle', 'Good', 5000, 'Construction'),
+    (3, 'PROD3', 'Cahier', 'Good', 1200, 'Study'),
+    (4, 'PROD4', 'Marteau', 'Bad', 1500, 'Construction')
     ]
 
 >>> df = spark.createDataFrame(data, columns)
 >>> df.show()
 
-# Write and read some parquet file in HDFS
-hdfs dfs -mkdir /tmp/data_parquet
+# write in hdfs folder
 
->>> df.write.parquet('/tmp/data_parquet/produit.parquet')
+>>> df.write.partitionBy("groupe").mode("append").option("parquet.block.size", 10*1024*1024).parquet("/tmp/data_parquet/produit.parquet")
+
+        df.write.partitionBy("groupe").mode("append").parquet("/tmp/data_parquet/produit.parquet")
+        df.write.parquet('/tmp/data_parquet/produit.parquet')
+        
 >>> spark.read.parquet('/tmp/data_parquet/produit.parquet').show()
 
 # read and write data in hive using parquet file
 
->>> df.write.mode("append").format("parquet").partitionBy('groupe').saveAsTable("test2.produit")
 >>> df_hive = spark.read.table("test2.produit")
 >>> df_hive.show()
 
+>>> df.write.mode("append").format("parquet").option("parquet.block.size", 10*1024*1024).insertInto("test2.produit2")    
+    
+    df.write.mode("append").format("parquet").option("parquet.block.size", 10*1024*1024).insertInto("test2.produit2")
+    df.write.mode("append").format("parquet").partitionBy('groupe').saveAsTable("test2.produit")
 
-ALTER TABLE test2.`produit` SET TBLPROPERTIES ('spark.sql.partitionProvider='catalog', 'spark.sql.sources.provider' = 'parquet')
+
+
+
+
+## WRITE CODE
+
+mkdir /home/hadoop/data_code
+cd /home/hadoop/data_code
+nano first.py
+    --> add content of first.py
+
+test submit:
+
+    spark-submit2 /home/hadoop/data_code/first.py
+
+    spark-submit2 --driver-memory 1g --executor-memory 1g --executor-cores 1 /home/hadoop/data_code/first.py
+
+    spark-submit2 \
+    --driver-memory 1g --executor-memory 1g --executor-cores 1 \
+    --conf "spark.sql.catalogImplementation=hive" \
+    --driver-java-options "-Dhive.metastore.uris=thrift://localhost:9083" \
+    --conf spark.sql.crossJoin.enabled=true \
+    --conf spark.sql.hive.convertMetastoreParquet=false \
+    --conf spark.sql.parquet.writeLegacyFormat=true \
+    --conf spark.mapreduce.input.fileinputformat.input.dir.recursive=true \
+    --conf spark.hive.mapred.supports.subdirectories=true \
+    --conf spark.mapred.input.dir.recursive=true \
+    --conf spark.hadoop.mapreduce.input.fileinputformat.input.dir.recursive=true \
+    /home/hadoop/data_code/first.py
 
 

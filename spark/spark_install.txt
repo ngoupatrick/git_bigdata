@@ -89,6 +89,7 @@ spark.yarn.am.cores              1
 spark.yarn.submit.file.replication 1
 spark.yarn.historyServer.address 0.0.0.0
 spark.driver.bindAddress         myhdp # hostname
+spark.ui.port                    4041
 
 
 spark.eventLog.rolling.enabled  true
@@ -154,8 +155,7 @@ UI:
 
 Examples:
 
-pyspark \
---name TEST_SPARK
+pyspark --name TEST_SPARK
 
 >>> sc.setLogLevel("ERROR")
 >>> sc.getConf().getAll()
