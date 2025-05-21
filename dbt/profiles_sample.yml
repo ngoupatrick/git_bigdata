@@ -1,0 +1,30 @@
+first_toto:
+  target: dev
+  outputs:
+    dev:
+      type: mysql
+      server: localhost
+      port: 8889  # optional
+      #database: [schema] # optional, should be same as schema
+      schema: toto_db_interm
+      username: root
+      password: mysql
+      driver: MySQL ODBC 8.0 ANSI Driver
+    prod:
+      type: mysql
+      server: localhost
+      port: 8889  # optional
+      #database: [schema] # optional, should be same as schema
+      schema: toto_db_interm
+      username: root
+      password: mysql
+      driver: MySQL ODBC 8.0 ANSI Driver
+    toto:
+      type: mysql
+      server: localhost
+      port: 8889  # optional
+      #database: [schema] # optional, should be same as schema
+      schema: toto_db_interm
+      username: root
+      password: mysql
+      driver: MySQL ODBC 8.0 ANSI Driver

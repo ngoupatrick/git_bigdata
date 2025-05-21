@@ -1,0 +1,176 @@
+Some commands:
+    pip install db-core dbt-?????
+    dbt --version
+    dbt init [project_name] -> initialize a project
+    dbt deps -> install dependences define in packages.yml
+    dbt debug -> test all configs
+    	dbt debug --config-dir -> see config folder
+    	dbt debug --profiles-dir='.' -> profiles.yml
+    	dbt debug --config-dir=''
+    	dbt debug --project-dir='' -> dbt_project.yml
+    dbt compile -> test models and see sql queries
+    	dbt compile --select|-s [my_model.yml]
+    dbt run -> execute a model
+    	dbt run --select [model_name] -> run model in file model_name.sql
+    	dbt run -m [model_name] -> run model in file model_name.sql
+    	dbt run --full-refresh -> reinit all concerns models
+    	dbt run -m [model_name] --profiles-dir [path_to_profile]
+    dbt test -> run test on all models
+    dbt snapshot -> create a snapshot
+    dbt docs generate -> generate a doc website
+    	dbt docs serve -> run the server for doc (port 8080)
+    dbt seed -> laod a file (csv...) into a database
+
+
+> BD toto_db_interm (mysql)
+create database toto_db_interm;
+
+> SHELL
+
+create env folder
+    mkdir /home/hadoop/env_folder
+    cd /home/hadoop/env_folder
+
+
+Create python env (env_dbt_311)
+    nano requirements.txt
+        dbt-core==1.7.9
+        dbt-mysql==1.7.0
+    sudo apt install python3-pip python3-venv -y
+    python3 -m venv /home/hadoop/env_folder/env_dbt_311
+    source /home/hadoop/env_folder/env_dbt_311/bin/activate
+    python -m pip install --upgrade pip
+    pip install --no-cache-dir -r /home/hadoop/env_folder/requirements.txt
+
+create project folder
+    cd 
+    mkdir /home/hadoop/dbt_project
+    cd /home/hadoop/dbt_project
+
+init the project
+    dbt --version
+    dbt init
+        Enter a name for your project (letters, digits, underscore): first_toto
+        Enter a number: 2
+    dbt debug --profiles-dir '/home/hadoop/dbt_project/first_toto' --project-dir '/home/hadoop/dbt_project/first_toto'
+
+- create files models/toto_table_copy.sql
+
+WITH _toto_table AS (
+    SELECT
+       id,
+       jour,
+       groupe,
+       qte
+   FROM toto_db.toto_table
+)
+
+SELECT * FROM _toto_table
+
+dbt run --profiles-dir '/home/hadoop/dbt_project/first_toto' --project-dir '/home/hadoop/dbt_project/first_toto' -s toto_table_copy
+
+- create files models/toto_table_view.sql
+{{ config(
+   materialized="view"
+) }}
+
+WITH _toto_table AS (
+    SELECT
+       jour,
+       groupe,    
+       sum(qte) as somme
+   FROM {{ ref("toto_table_copy") }}
+   GROUP BY 1
+)
+
+SELECT * FROM _toto_table
+
+dbt run --profiles-dir '/home/hadoop/dbt_project/first_toto' --project-dir '/home/hadoop/dbt_project/first_toto' -s toto_table_view
+
+- create files models/toto_table_increment.sql
+
+{{ config(
+    materialized = 'incremental',
+    incremental_strategy = 'append',
+    unique_key = 'id'
+) }}
+
+WITH _toto_table AS (
+    SELECT
+       id,
+       jour,
+       groupe,
+       qte
+   FROM toto_db.toto_table
+   {% if is_incremental() %}
+        WHERE id >= (SELECT MAX(id) FROM {{ this }})
+   {% endif %}
+)
+
+SELECT * FROM _toto_table
+
+dbt run --profiles-dir '/home/hadoop/dbt_project/first_toto' --project-dir '/home/hadoop/dbt_project/first_toto' -s toto_table_increment
+
+- create files models/toto_table_transform.sql
+
+WITH _toto_table AS (
+    SELECT
+       id,
+       jour,
+       groupe,
+       CASE groupe
+         WHEN "grp1" THEN 1
+         WHEN "grp2" THEN 2
+         WHEN "grp3" THEN 3
+        END as groupe_transform,  -- convert column to integer       
+       qte,
+       CURRENT_DATE() as date_append
+   FROM {{ ref("toto_table") }}
+)
+
+SELECT * FROM _toto_table
+
+dbt run --profiles-dir '/home/hadoop/dbt_project/first_toto' --project-dir '/home/hadoop/dbt_project/first_toto' -s toto_table_transform
+
+- create files models/toto_table_grouper.sql
+
+{{ config(
+   materialized="view"
+) }}
+
+WITH _toto_table AS (
+    SELECT
+       jour,
+       groupe,    
+       sum(qte) as somme
+   FROM {{ ref("toto_table_transform") }}
+   GROUP BY 1
+)
+
+SELECT * FROM _toto_table
+
+dbt run --profiles-dir '/home/hadoop/dbt_project/first_toto' --project-dir '/home/hadoop/dbt_project/first_toto' -s toto_table_grouper
+
+
+mysql> SHOW FULL TABLES WHERE Table_Type LIKE 'VIEW';
+
+- create files models/toto_table_jour_grouper.sql
+
+{{ config(
+   materialized="view"
+) }}
+
+WITH _toto_table AS (
+    SELECT
+       jour,    
+       sum(qte) as somme
+   FROM {{ ref("toto_table_transform") }}
+   GROUP BY 1
+)
+
+SELECT * FROM _toto_table
+
+dbt run --profiles-dir '/home/hadoop/dbt_project/first_toto' --project-dir '/home/hadoop/dbt_project/first_toto' -s toto_table_jour_grouper
+
+
+mysql> SHOW FULL TABLES WHERE Table_Type LIKE 'VIEW';
